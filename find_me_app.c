@@ -1,7 +1,5 @@
 #include "asf.h"
 #include "usart.h"
-//#include "console_serial.h"
-//#include "conf_console.h"
 #include "platform.h"
 #include "timer_hw.h"
 #include "conf_timer.h"
@@ -16,13 +14,56 @@
 void tc_cc0_cb(struct tc_module *const module_inst);
 static struct usart_module cdc_uart_module;
 
+static const ble_event_callback_t fmp_gap_handle[] = {
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	fmp_target_connected_state_handler,
+	fmp_target_disconnect_event_handler,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL
+};
+
+static const ble_event_callback_t fmp_gatt_server_handle[] = {
+	NULL,
+	NULL,
+	fmp_target_char_changed_handler,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL
+};
+
+
 uint32_t timeout_count;
 hw_timer_callback_t timer_callback;
+at_ble_events_t event;
+uint8_t ble_event_params[524];
+
+gatt_service_handler_t ias_handle;
 
 /* flag da tarefa do Timer */
 volatile bool app_timer_done = false;
 /*Flag da contagem de tempo*/
 static uint8_t timer_interval = INIT_TIMER_INTERVAL;
+
+/** @brief Interrupção para o serviço de alerta imediato */
+find_me_callback_t immediate_alert_cb;
 
 /*Interrupção do tempo*/
 static void timer_callback_handler(void)
@@ -43,7 +84,6 @@ static void app_immediate_alert(uint8_t alert_val)
 		timeout_count = LED_FAST_INTERVAL;
 		tc_set_count_value(&tc_instance, 0);
 		tc_enable_callback(&tc_instance, TC_CALLBACK_CC_CHANNEL0);
-		//hw_timer_start(timer_interval);
 		
 	} else if (alert_val == IAS_MID_ALERT) {
 		DBG_LOG("Find Me : Mild Alert");
@@ -52,8 +92,7 @@ static void app_immediate_alert(uint8_t alert_val)
 		timeout_count = LED_MILD_INTERVAL;
 		tc_set_count_value(&tc_instance, 0);
 		tc_enable_callback(&tc_instance, TC_CALLBACK_CC_CHANNEL0);
-		//hw_timer_start(timer_interval);
-		
+			
 	} else if (alert_val == IAS_NO_ALERT) {
 		DBG_LOG("Find Me : No Alert");
 		tc_disable_callback(&tc_instance, TC_CALLBACK_CC_CHANNEL0);
@@ -62,7 +101,7 @@ static void app_immediate_alert(uint8_t alert_val)
 }
 
 /**
- * \brief Find Me Application main function
+ * \brief Find Me - função main
  */
 int main(void)
 {
@@ -101,17 +140,54 @@ int main(void)
 
 	/* inicializa o dispositivo bluetooth e seta o endereço*/
 	ble_device_init(NULL);
+
+/**
+ * \brief Inicialização dos serviços de busca
+ */
+
+/** Inicia o serviço de alerta imediato do dispositivo de busca*/
+	init_immediate_alert_service(&ias_handle);
 	
-	fmp_target_init(NULL);
+/**
+ * \Definição do serviço de alerta imediato para o dispositivo bluetooth*/
+	ias_primary_service_define(&ias_handle);
+	DBG_LOG("The Supported Services in Find Me Profile are:");
+	DBG_LOG("  -> Immediate Alert Service");
+	
+	/* Seta os dados para o BLE*/
+	if(!(ble_advertisement_data_set() == AT_BLE_SUCCESS))
+	{
+		DBG_LOG("Fail to set Advertisement data");
+	}
+
+	/* Status */
+	if (at_ble_adv_start(AT_BLE_ADV_TYPE_UNDIRECTED,
+	AT_BLE_ADV_GEN_DISCOVERABLE, NULL, AT_BLE_ADV_FP_ANY,
+	APP_FMP_FAST_ADV, APP_FMP_ADV_TIMEOUT,
+	0) == AT_BLE_SUCCESS) {
+		DBG_LOG("Bluetooth device is in Advertising Mode");
+		} else {
+		DBG_LOG("BLE Adv start Failed");
+	}
+	
+	/* Registro de interrupção do BLE-GAP */
+	ble_mgr_events_callback_handler(REGISTER_CALL_BACK, BLE_GAP_EVENT_TYPE, fmp_gap_handle);
+	
+	/* Registro de interrupção do BLE-GATT-Server */
+	ble_mgr_events_callback_handler(REGISTER_CALL_BACK, BLE_GATT_SERVER_EVENT_TYPE, fmp_gatt_server_handle);
 
 	/*registra o destino da interrupção do dispositivo*/
-	register_find_me_handler(app_immediate_alert);
+	immediate_alert_cb = app_immediate_alert;
 
 	/* Execução normal */
 	while (1) {
+		
 		/* execução ociosa (a  espera de interrupção) do dispositivo Bluetooth */
-		ble_event_task();
-
+		if (at_ble_event_get(&event, ble_event_params, BLE_EVENT_TIMEOUT) == AT_BLE_SUCCESS)
+		{
+			ble_event_manager(event, ble_event_params);
+		}
+		
 		/* Caso o limite de tempo seja atingido */
 		if (app_timer_done) {
 			LED_Toggle(LED0);
