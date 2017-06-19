@@ -2,6 +2,7 @@
 #include "usart.h"
 #include "platform.h"
 #include "timer_hw.h"
+#include "tc_interrupt.h"
 #include "conf_timer.h"
 #include "conf_extint.h"
 #include "ble_manager.h"
@@ -12,6 +13,8 @@
 /* === MACROS ============================================================== */
 
 void tc_cc0_cb(struct tc_module *const module_inst);
+void configure_eeprom(void);
+
 static struct usart_module cdc_uart_module;
 
 static const ble_event_callback_t fmp_gap_handle[] = {
@@ -49,7 +52,6 @@ static const ble_event_callback_t fmp_gatt_server_handle[] = {
 	NULL
 };
 
-
 uint32_t timeout_count;
 hw_timer_callback_t timer_callback;
 at_ble_events_t event;
@@ -64,6 +66,58 @@ static uint8_t timer_interval = INIT_TIMER_INTERVAL;
 
 /** @brief Interrupção para o serviço de alerta imediato */
 find_me_callback_t immediate_alert_cb;
+
+//! [setup]
+void configure_eeprom(void)
+{
+	/* Setup EEPROM emulator service */
+//! [init_eeprom_service]
+	enum status_code error_code = eeprom_emulator_init();
+//! [init_eeprom_service]
+
+//! [check_init_ok]
+	if (error_code == STATUS_ERR_NO_MEMORY) {
+		while (true) {
+			/* No EEPROM section has been set in the device's fuses */
+		}
+	}
+//! [check_init_ok]
+//! [check_re-init]
+	else if (error_code != STATUS_OK) {
+		/* Erase the emulated EEPROM memory (assume it is unformatted or
+		 * irrecoverably corrupt) */
+		printf("Memory error!!!\n");
+		eeprom_emulator_erase_memory();
+		eeprom_emulator_init();
+	}
+//! [check_re-init]
+}
+
+#if (SAMD || SAMR21)
+void SYSCTRL_Handler(void)
+{
+	if (SYSCTRL->INTFLAG.reg & SYSCTRL_INTFLAG_BOD33DET) {
+		SYSCTRL->INTFLAG.reg = SYSCTRL_INTFLAG_BOD33DET;
+		eeprom_emulator_commit_page_buffer();
+	}
+}
+#endif
+
+static void configure_bod(void)
+{
+	#if (SAMD || SAMR21)
+	struct bod_config config_bod33;
+	bod_get_config_defaults(&config_bod33);
+	config_bod33.action = BOD_ACTION_INTERRUPT;
+	/* BOD33 threshold level is about 3.2V */
+	config_bod33.level = 48;
+	bod_set_config(BOD_BOD33, &config_bod33);
+	bod_enable(BOD_BOD33);
+
+	SYSCTRL->INTENSET.reg = SYSCTRL_INTENCLR_BOD33DET;
+	system_interrupt_enable(SYSTEM_INTERRUPT_MODULE_SYSCTRL);
+	#endif
+}
 
 /*Interrupção do tempo*/
 static void timer_callback_handler(void)
@@ -124,12 +178,12 @@ int main(void)
 
 	/* Inicializando o timer */
 	tc_get_config_defaults(&config_tc);
-	config_tc.counter_size = TC_CTRLA_MODE_COUNT16;
+	config_tc.counter_size = TC_CTRLA_MODE_COUNT32;
 	config_tc.clock_source = GCLK_GENERATOR_0;
 	config_tc.clock_prescaler = TC_CTRLA_PRESCALER(7);
 	config_tc.counter_8_bit.period = 0;
-	config_tc.counter_16_bit.compare_capture_channel[0] = (48000000ul/1024ul);
-	config_tc.counter_16_bit.compare_capture_channel[1] = 0xFFFF;
+	config_tc.counter_32_bit.compare_capture_channel[0] = (48000000ul/1024ul);
+	config_tc.counter_32_bit.compare_capture_channel[1] = 0xFFFF;
 	tc_init(&tc_instance, TC3, &config_tc);
 	tc_enable(&tc_instance);
 	tc_register_callback(&tc_instance, tc_cc0_cb, TC_CALLBACK_CC_CHANNEL0);

@@ -52,12 +52,15 @@
  * running the ASF driver selector tool. Any changes will be discarded.
  */
 
+// From module: BOD - Brown Out Detector
+#include <bod.h>
+
 // From module: Common SAM0 compiler driver
 #include <compiler.h>
 #include <status_codes.h>
 
-// From module: Delay routines
-#include <delay.h>
+// From module: EEPROM Emulator Service
+#include <eeprom.h>
 
 // From module: EXTINT - External Interrupt (Callback APIs)
 #include <extint.h>
@@ -68,6 +71,9 @@
 
 // From module: Interrupt management - SAM implementation
 #include <interrupt.h>
+
+// From module: NVM - Non-Volatile Memory
+#include <nvm.h>
 
 // From module: PORT - GPIO Pin Control
 #include <port.h>
@@ -104,10 +110,6 @@
 
 // From module: Standard serial I/O (stdio)
 #include <stdio_serial.h>
-
-// From module: TC - Timer Counter (Callback APIs)
-#include <tc.h>
-#include <tc_interrupt.h>
 
 // From module: USART - Serial interface- SAM implementation for devices with only USART
 #include <serial.h>
