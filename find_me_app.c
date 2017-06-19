@@ -56,6 +56,9 @@ uint32_t timeout_count;
 hw_timer_callback_t timer_callback;
 at_ble_events_t event;
 uint8_t ble_event_params[524];
+/** variáveis de acesso a memória*/
+uint8_t last_alert = 0;
+uint8_t page_data[EEPROM_PAGE_SIZE];
 
 gatt_service_handler_t ias_handle;
 
@@ -135,6 +138,7 @@ static void app_immediate_alert(uint8_t alert_val)
 	if (alert_val == IAS_HIGH_ALERT) {
 		DBG_LOG("Find Me : High Alert");
 		LED_On(LED0);
+		last_alert = 2;
 		timeout_count = LED_FAST_INTERVAL;
 		tc_set_count_value(&tc_instance, 0);
 		tc_enable_callback(&tc_instance, TC_CALLBACK_CC_CHANNEL0);
@@ -142,16 +146,20 @@ static void app_immediate_alert(uint8_t alert_val)
 	} else if (alert_val == IAS_MID_ALERT) {
 		DBG_LOG("Find Me : Mild Alert");
 		LED_On(LED0);
-		timer_interval = LED_MILD_INTERVAL;
+		last_alert = 1;
 		timeout_count = LED_MILD_INTERVAL;
 		tc_set_count_value(&tc_instance, 0);
 		tc_enable_callback(&tc_instance, TC_CALLBACK_CC_CHANNEL0);
 			
 	} else if (alert_val == IAS_NO_ALERT) {
 		DBG_LOG("Find Me : No Alert");
+		last_alert = 0;
 		tc_disable_callback(&tc_instance, TC_CALLBACK_CC_CHANNEL0);
 		LED_Off(LED0);
 	}
+	page_data[0] = last_alert;
+	eeprom_emulator_write_page(0, page_data);
+	eeprom_emulator_commit_page_buffer();
 }
 
 /**
@@ -190,11 +198,29 @@ int main(void)
 	
 	timer_callback = timer_callback_handler;
 
+	printf("Oi Turma !!\r\n");
+	//! [setup_init]
+	configure_eeprom();
+	//! [setup_bod]
+	configure_bod();
+	
 	DBG_LOG("Initializing Find Me Application");
 
 	/* inicializa o dispositivo bluetooth e seta o endereço*/
 	ble_device_init(NULL);
-
+	
+	eeprom_emulator_read_page(0, page_data);
+	last_alert = page_data[0];
+	
+	if(last_alert == 2){
+		DBG_LOG("Last Alert: High Alert!");
+	}
+	else if(last_alert == 1){
+		DBG_LOG("Last Alert: Mild Alert!");
+	}
+	else{
+		DBG_LOG("Last Alert: No Alert!");
+	}
 /**
  * \brief Inicialização dos serviços de busca
  */
