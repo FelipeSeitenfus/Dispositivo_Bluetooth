@@ -1,3 +1,51 @@
+/**
+ * \file
+ *
+ * \brief Find Me Profile Application
+ *
+ * Copyright (c) 2016 Atmel Corporation. All rights reserved.
+ *
+ * \asf_license_start
+ *
+ * \page License
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * 3. The name of Atmel may not be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * 4. This software may only be redistributed and used in connection with an
+ *    Atmel microcontroller product.
+ *
+ * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
+ * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * \asf_license_stop
+ *
+ */
+
+/*
+ * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel
+ *Support</a>
+ */
+
 #include "asf.h"
 #include "usart.h"
 #include "platform.h"
@@ -59,7 +107,7 @@ uint32_t timeout_count;
 hw_timer_callback_t timer_callback;
 at_ble_events_t event;
 uint8_t ble_event_params[524];
-/** vari·veis de acesso a memÛria*/
+/** vari√°veis de acesso a mem√≥ria*/
 uint8_t last_alert = 0;
 uint8_t page_data[EEPROM_PAGE_SIZE];
 
@@ -73,21 +121,21 @@ volatile bool app_timer_done = false;
 /** Flag da contagem de tempo*/
 static uint8_t timer_interval = INIT_TIMER_INTERVAL;
 
-/** @brief InterrupÁ„o para o serviÁo de alerta imediato */
+/** @brief Interrup√ß√£o para o servi√ßo de alerta imediato */
 find_me_callback_t immediate_alert_cb;
 
-/** ConfiguraÁ„o da memÛria EEPROM.
-* EEPROM È uma emulaÁ„o de uma memÛria que depende da configuraÁ„o dos fusos. O tamanho dela na placa deve ser menor que cinco.
-* A configuraÁ„o dos fusos da memÛria n„o foi feita da maneira correta. Ent„o, ele fica em um loop infinito.
-* Se a EEPROM estiver mal configurada ou corrompida, ela È resetada e seus dados s„o apagados.
+/** Configura√ß√£o da mem√≥ria EEPROM.
+* EEPROM √© uma emula√ß√£o de uma mem√≥ria que depende da configura√ß√£o dos fusos. O tamanho dela na placa deve ser menor que cinco.
+* A configura√ß√£o dos fusos da mem√≥ria n√£o foi feita da maneira correta. Ent√£o, ele fica em um loop infinito.
+* Se a EEPROM estiver mal configurada ou corrompida, ela √© resetada e seus dados s√£o apagados.
 **/
 
 void configure_eeprom(void)
 {
-//! InicializaÁ„o da EEPROM.
+//! Inicializa√ß√£o da EEPROM.
 	enum status_code error_code = eeprom_emulator_init();
 
-//! Verifica se a configuraÁ„o foi feita da maneira correta.
+//! Verifica se a configura√ß√£o foi feita da maneira correta.
 	if (error_code == STATUS_ERR_NO_MEMORY) {
 		while (true) {
 			
@@ -101,7 +149,7 @@ void configure_eeprom(void)
 }
 
 
-/** ConfiguraÁ„o da interrupÁ„o da memÛria EEPROM */
+/** Configura√ß√£o da interrup√ß√£o da mem√≥ria EEPROM */
 #if (SAMD || SAMR21)
 void SYSCTRL_Handler(void)
 {
@@ -127,10 +175,10 @@ static void configure_bod(void)
 	#endif
 }
 
-/** Tratamento da interrupÁ„o do timer.
-* O timer È desabilitado.
-* Se app_timer_done È true, È uma indicaÁ„o de que nenhum dispositivo foi conectado no tempo possÌvel, ou n„o conseguiu conectar.
-* Ent„o, ele reinicia no modo Advertising Mode.
+/** Tratamento da interrup√ß√£o do timer.
+* O timer √© desabilitado.
+* Se app_timer_done √© true, √© uma indica√ß√£o de que nenhum dispositivo foi conectado no tempo poss√≠vel, ou n√£o conseguiu conectar.
+* Ent√£o, ele reinicia no modo Advertising Mode.
 **/
 static void timer_callback_handler(void)
 {
@@ -139,7 +187,7 @@ static void timer_callback_handler(void)
 }
 
 /** Tratamento do sinal bluetooth mandado pelo celular para o dispositivo.
-* Ele indica se o sinal mandado foi alto (High), mÈdio (Mild) ou fraco (No).
+* Ele indica se o sinal mandado foi alto (High), m√©dio (Mild) ou fraco (No).
 * Se o sinal for High ou Mild, o LED acende. Se o sinal for No, apaga.
 **/
 static void app_immediate_alert(uint8_t alert_val)
@@ -166,24 +214,24 @@ static void app_immediate_alert(uint8_t alert_val)
 		tc_disable_callback(&tc_instance, TC_CALLBACK_CC_CHANNEL0);
 		LED_Off(LED0);
 	}
-	/** GravaÁ„o do ˙ltimo sinal dado durante a execuÁ„o do aplicativo na memÛria. */
+	/** Grava√ß√£o do √∫ltimo sinal dado durante a execu√ß√£o do aplicativo na mem√≥ria. */
 	page_data[0] = last_alert;
 	eeprom_emulator_write_page(0, page_data);
 	eeprom_emulator_commit_page_buffer();
 }
 /** Protothread
-* A protothread pt_find_me È respons·vel por configurar e executar a aplicaÁ„o.
+* A protothread pt_find_me √© respons√°vel por configurar e executar a aplica√ß√£o.
 **/
 PT_THREAD(pt_find_me(struct pt *pt, char data)){
 	PT_BEGIN(pt);
 	
-	/** InicializaÁ„o do sistema */
+	/** Inicializa√ß√£o do sistema */
 	buffer = i;
 	PT_WAIT_UNTIL(pt, buffer == 0);
 	system_init();
 	PT_YIELD(pt);
 	
-	/** InicializaÁ„o do controle serial */
+	/** Inicializa√ß√£o do controle serial */
 	buffer = i;
 	PT_WAIT_UNTIL(pt, buffer == 1);
 	usart_get_config_defaults(&usart_conf);
@@ -198,8 +246,8 @@ PT_THREAD(pt_find_me(struct pt *pt, char data)){
 	PT_YIELD(pt);
 	
 	/**
-	 InicializaÁ„o do timer.
-	 Um counter size de 32 bits permite um tempo maior de espera, dado que o sinal Bluetooth È inst·vel.
+	 Inicializa√ß√£o do timer.
+	 Um counter size de 32 bits permite um tempo maior de espera, dado que o sinal Bluetooth √© inst√°vel.
 	 */
 	buffer = i;
 	PT_WAIT_UNTIL(pt, buffer == 2);
@@ -214,26 +262,26 @@ PT_THREAD(pt_find_me(struct pt *pt, char data)){
 	tc_enable(&tc_instance);
 	tc_register_callback(&tc_instance, tc_cc0_cb, TC_CALLBACK_CC_CHANNEL0);
 	
-	/** Registro da interrupÁ„o do timer */
+	/** Registro da interrup√ß√£o do timer */
 	timer_callback = timer_callback_handler;
 	PT_YIELD(pt);
 	
-	/** ConfiguraÁ„o da memÛria EEPROM da placa */
+	/** Configura√ß√£o da mem√≥ria EEPROM da placa */
 	buffer = i;
 	PT_WAIT_UNTIL(pt, buffer == 3);
 	configure_eeprom();
 	configure_bod();
 	PT_YIELD(pt);
 	
-	/** InicializaÁ„o da aplicaÁ„o */
+	/** Inicializa√ß√£o da aplica√ß√£o */
 	buffer = i;
 	PT_WAIT_UNTIL(pt, buffer == 4);
 	DBG_LOG("Initializing Find Me Application");
-	/** InicializaÁ„o do dispositivo bluetooth */
+	/** Inicializa√ß√£o do dispositivo bluetooth */
 	ble_device_init(NULL);
 	PT_YIELD(pt);
 	
-	/** Load da memÛria do ˙ltimo alerta dado por um celular na execuÁ„o anterior*/
+	/** Load da mem√≥ria do √∫ltimo alerta dado por um celular na execu√ß√£o anterior*/
 	buffer = i;
 	PT_WAIT_UNTIL(pt, buffer == 5);
 	eeprom_emulator_read_page(0, page_data);
@@ -249,12 +297,12 @@ PT_THREAD(pt_find_me(struct pt *pt, char data)){
 	}
 	PT_YIELD(pt);
 
-	/** InicializaÁ„o do serviÁo de Find Me */
+	/** Inicializa√ß√£o do servi√ßo de Find Me */
 	buffer = i;
 	PT_WAIT_UNTIL(pt, buffer == 6);
 	init_immediate_alert_service(&ias_handle);
-	/** DefiniÁ„o da aplicaÁ„o para o dispositivo bluetooth.
-	Indica que ele ser· usado para o serviÁo de Find Me.
+	/** Defini√ß√£o da aplica√ß√£o para o dispositivo bluetooth.
+	Indica que ele ser√° usado para o servi√ßo de Find Me.
 	*/
 	ias_primary_service_define(&ias_handle);
 	DBG_LOG("The Supported Services in Find Me Profile are:");
@@ -269,8 +317,8 @@ PT_THREAD(pt_find_me(struct pt *pt, char data)){
 	}
 	
 	/** Status do dispositivo.
-	Advertising Mode È o modo de espera do dispositivo apÛs a inicializaÁ„o.
-	AtÈ que um celular seja conectado com sucesso, ele fica nesse modo.
+	Advertising Mode √© o modo de espera do dispositivo ap√≥s a inicializa√ß√£o.
+	At√© que um celular seja conectado com sucesso, ele fica nesse modo.
 	*/
 	if (at_ble_adv_start(AT_BLE_ADV_TYPE_UNDIRECTED,
 	AT_BLE_ADV_GEN_DISCOVERABLE, NULL, AT_BLE_ADV_FP_ANY,
@@ -284,18 +332,18 @@ PT_THREAD(pt_find_me(struct pt *pt, char data)){
 	
 	buffer = i;
 	PT_WAIT_UNTIL(pt, buffer == 8);
-	/** Registro de interrupÁ„o do BLE-GAP */
+	/** Registro de interrup√ß√£o do BLE-GAP */
 	ble_mgr_events_callback_handler(REGISTER_CALL_BACK, BLE_GAP_EVENT_TYPE, fmp_gap_handle);
-	/** Registro de interrupÁ„o do BLE-GATT-Server */
+	/** Registro de interrup√ß√£o do BLE-GATT-Server */
 	ble_mgr_events_callback_handler(REGISTER_CALL_BACK, BLE_GATT_SERVER_EVENT_TYPE, fmp_gatt_server_handle);
-	/** Registro do destino da interrupÁ„o do dispositivo.
-	Sempre que uma interrupÁ„o acontecer, È para a funÁ„o app_immediate_alert que ele deve ir.
+	/** Registro do destino da interrup√ß√£o do dispositivo.
+	Sempre que uma interrup√ß√£o acontecer, √© para a fun√ß√£o app_immediate_alert que ele deve ir.
 	*/
 	immediate_alert_cb = app_immediate_alert;
 	PT_YIELD(pt);
 	
-	/** ExecuÁ„o normal
-	Ele fica no aguardo de uma interrupÁ„o. Quando ela for dada, a funÁ„o app_immediate_alert È chamada.
+	/** Execu√ß√£o normal
+	Ele fica no aguardo de uma interrup√ß√£o. Quando ela for dada, a fun√ß√£o app_immediate_alert √© chamada.
 	Caso o limite de tempo seja atingido sem que um dispositivo tenha mandado um sinal, ele volta para o Advertising Mode.
 	*/
 	buffer = i;
@@ -319,7 +367,7 @@ PT_THREAD(pt_find_me(struct pt *pt, char data)){
 }
 
 /**
- * \brief Find Me - funÁ„o main
+ * \brief Find Me - fun√ß√£o main
  */
 static struct pt pt;
 int main(void)
